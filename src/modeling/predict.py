@@ -93,24 +93,35 @@ def preprocess_input_data(
     if not expected_features:
         raise ValueError("No feature columns found in model metadata")
     
-    # If we have a preprocessor, use it for raw data
-    if preprocessor is not None:
-        logger.info("Using preprocessing pipeline for raw data")
-        # Run preprocessing pipeline
-        preprocessed_data = preprocessor.preprocess(data)
-        # Extract features for prediction
-        X = preprocessed_data[expected_features]
-    else:
-        # Assume data is already preprocessed
-        logger.info("Using preprocessed data")
+    # Check if all expected features are present
+    missing_features = set(expected_features) - set(data.columns)
+    if missing_features:
+        logger.warning(f"Missing features in input data: {missing_features}")
+        logger.info("Attempting to create missing features...")
         
-        # Check if all expected features are present
+        # Try to create missing features using basic calculations
+        if 'fat_carb_ratio' in missing_features and 'fat_100g' in data.columns and 'carbohydrates_100g' in data.columns:
+            data['fat_carb_ratio'] = data['fat_100g'] / (data['carbohydrates_100g'] + 1e-8)
+        
+        if 'protein_carb_ratio' in missing_features and 'proteins_100g' in data.columns and 'carbohydrates_100g' in data.columns:
+            data['protein_carb_ratio'] = data['proteins_100g'] / (data['carbohydrates_100g'] + 1e-8)
+        
+        if 'protein_fat_ratio' in missing_features and 'proteins_100g' in data.columns and 'fat_100g' in data.columns:
+            data['protein_fat_ratio'] = data['proteins_100g'] / (data['fat_100g'] + 1e-8)
+        
+        if 'total_macros' in missing_features:
+            macro_cols = ['fat_100g', 'carbohydrates_100g', 'proteins_100g']
+            available_macros = [col for col in macro_cols if col in data.columns]
+            if available_macros:
+                data['total_macros'] = data[available_macros].sum(axis=1)
+        
+        # Check again for missing features
         missing_features = set(expected_features) - set(data.columns)
         if missing_features:
-            raise ValueError(f"Missing features in input data: {missing_features}")
-        
-        # Select only the expected features
-        X = data[expected_features]
+            raise ValueError(f"Still missing features after creation: {missing_features}")
+    
+    # Select only the expected features
+    X = data[expected_features]
     
     # Ensure correct data types
     for col in X.columns:

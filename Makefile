@@ -10,15 +10,11 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
-
 ## Install Python dependencies
 .PHONY: requirements
 requirements:
 	$(PYTHON_INTERPRETER) -m pip install -U pip
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-	
-
-
 
 ## Delete all compiled Python files
 .PHONY: clean
@@ -26,81 +22,86 @@ clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-
-## Lint using flake8, black, and isort (use `make format` to do formatting)
+## Lint using flake8, black, and isort
 .PHONY: lint
 lint:
-	flake8 nutrisage
-	isort --check --diff nutrisage
-	black --check nutrisage
+	flake8 src
+	isort --check --diff src
+	black --check src
 
 ## Format source code with black
 .PHONY: format
 format:
-	isort nutrisage
-	black nutrisage
-
-
+	isort src
+	black src
 
 ## Run tests
 .PHONY: test
 test:
-	python -m pytest tests
-## Download Data from storage system
-.PHONY: sync_data_down
-sync_data_down:
-	aws s3 sync s3://nutrisage/data/ \
-		data/ 
-	
+	python -m pytest tests -v
 
-## Upload Data to storage system
-.PHONY: sync_data_up
-sync_data_up:
-	aws s3 sync data/ \
-		s3://nutrisage/data 
-	
+## Run specific test files
+.PHONY: test-data
+test-data:
+	python -m pytest tests/test_data_pipeline.py -v
 
+.PHONY: test-preprocessing
+test-preprocessing:
+	python -m pytest tests/test_preprocessing_pipeline.py -v
 
+.PHONY: test-training
+test-training:
+	python -m pytest tests/test_training_pipeline.py -v
 
-## Set up Python interpreter environment
-.PHONY: create_environment
-create_environment:
-	@bash -c "if [ ! -z `which virtualenvwrapper.sh` ]; then source `which virtualenvwrapper.sh`; mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER); else mkvirtualenv.bat $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER); fi"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
-	
-
-
+.PHONY: test-prediction
+test-prediction:
+	python -m pytest tests/test_prediction_pipeline.py -v
 
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
 
-
-## Make dataset
+## Load and process dataset
 .PHONY: data
 data: requirements
-	$(PYTHON_INTERPRETER) nutrisage/dataset.py
+	$(PYTHON_INTERPRETER) -m src.dataset
 
 ## Preprocess data
 .PHONY: preprocess
 preprocess: requirements
-	$(PYTHON_INTERPRETER) -m nutrisage.preprocessing
+	$(PYTHON_INTERPRETER) -m src.preprocessing
 
 ## Train the nutrition grade model
 .PHONY: train
 train: requirements
-	$(PYTHON_INTERPRETER) -m nutrisage.modeling.train
+	$(PYTHON_INTERPRETER) -m src.modeling.train
 
 ## Train with preprocessing pipeline
 .PHONY: train-full
 train-full: requirements
-	$(PYTHON_INTERPRETER) -m nutrisage.modeling.train --use-preprocessing-pipeline --sample-fraction 0.1
+	$(PYTHON_INTERPRETER) -m src.modeling.train --use-preprocessing-pipeline --sample-fraction 0.1
+
+## Train with hyperparameter tuning
+.PHONY: train-tune
+train-tune: requirements
+	$(PYTHON_INTERPRETER) -m src.modeling.train --use-preprocessing-pipeline --sample-fraction 0.1 --tune
 
 ## Make predictions with trained model
 .PHONY: predict
 predict: requirements
-	$(PYTHON_INTERPRETER) -m nutrisage.modeling.predict
+	$(PYTHON_INTERPRETER) -m src.modeling.predict
 
+## Generate model evaluation plots
+.PHONY: plots
+plots: requirements
+	$(PYTHON_INTERPRETER) -m src.plots
+
+## Run complete pipeline (preprocess -> train -> predict)
+.PHONY: pipeline
+pipeline: requirements
+	$(PYTHON_INTERPRETER) -m src.preprocessing
+	$(PYTHON_INTERPRETER) -m src.modeling.train --use-preprocessing-pipeline
+	$(PYTHON_INTERPRETER) -m src.modeling.predict
 
 #################################################################################
 # Self Documenting Commands                                                     #

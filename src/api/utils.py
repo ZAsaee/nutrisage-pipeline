@@ -35,20 +35,31 @@ class ModelManager:
             logger.success("Model loaded successfully!")
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
-            raise
+            # Don't raise the exception, just log it
+            # The model will be loaded when first accessed
+            self._model = None
+            self._metadata = None
     
     @property
     def model(self):
         """Get the loaded model."""
         if self._model is None:
-            self._load_model()
+            try:
+                self._load_model()
+            except Exception as e:
+                logger.error(f"Failed to load model on demand: {e}")
+                raise RuntimeError("Model not available")
         return self._model
     
     @property
     def metadata(self):
         """Get the model metadata."""
         if self._metadata is None:
-            self._load_model()
+            try:
+                self._load_model()
+            except Exception as e:
+                logger.error(f"Failed to load model on demand: {e}")
+                raise RuntimeError("Model not available")
         return self._metadata
     
     def is_ready(self) -> bool:
@@ -67,6 +78,23 @@ def predict_nutrition_grade(nutrition_data: NutritionInput) -> PredictionRespons
         
         # Convert input to DataFrame
         input_dict = nutrition_data.dict()
+        
+        # Map API field names to model feature names
+        feature_mapping = {
+            'energy_kcal_100g': 'energy-kcal_100g'
+        }
+        
+        # Apply feature name mapping
+        for api_name, model_name in feature_mapping.items():
+            if api_name in input_dict:
+                input_dict[model_name] = input_dict.pop(api_name)
+        
+        # Create derived features (ratios and totals)
+        input_dict['fat_carb_ratio'] = input_dict['fat_100g'] / (input_dict['carbohydrates_100g'] + 1e-8)
+        input_dict['protein_carb_ratio'] = input_dict['proteins_100g'] / (input_dict['carbohydrates_100g'] + 1e-8)
+        input_dict['protein_fat_ratio'] = input_dict['proteins_100g'] / (input_dict['fat_100g'] + 1e-8)
+        input_dict['total_macros'] = input_dict['fat_100g'] + input_dict['carbohydrates_100g'] + input_dict['proteins_100g']
+        
         df = pd.DataFrame([input_dict])
         
         # Preprocess input data

@@ -3,19 +3,32 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "nutrisage"
-version = "0.0.1"
-description = "Healthy\u2011food intelligence, built with full\u2011stack MLOps on AWS"
+name = "nutrisage-mlops"
+version = "0.1.0"
+description = "Healthy-food intelligence, built with full-stack MLOps on AWS"
 authors = [
   { name = "Zohreh Asaee" },
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "xgboost>=1.7.0",
+    "optuna>=3.0.0",
+    "boto3>=1.26.0",
+    "awswrangler>=3.0.0",
+    "typer>=0.9.0",
+    "loguru>=0.7.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "python-dotenv>=1.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "pydantic>=2.0.0",
 ]
-requires-python = "~=3.11.0"
 
 [tool.black]
 line-length = 99
@@ -29,7 +42,7 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-known_first_party = ["nutrisage"]
+known_first_party = ["src"]
 force_sort_within_sections = true
 
 

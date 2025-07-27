@@ -17,36 +17,18 @@ from src.config import PROCESSED_DATA_DIR, RAW_DATA_DIR, EXTERNAL_DATA_DIR
 app = typer.Typer()
 
 
-def load_from_s3(bucket: str, key: str, file_format: str = 'parquet') -> pd.DataFrame:
-    """
-    Load data from S3 bucket.
+def load_from_s3(bucket: str, key: str, sample_fraction: float = None) -> pd.DataFrame:
+    """Load partitioned parquet data from S3."""
+    s3_path = f"s3://{bucket}/{key}"
     
-    Args:
-        bucket: S3 bucket name
-        key: S3 object key
-        file_format: File format ('parquet', 'csv', 'json')
-        
-    Returns:
-        Loaded DataFrame
-    """
-    logger.info(f"Loading data from s3://{bucket}/{key}")
+    # Read all partitions first
+    df = wr.s3.read_parquet(s3_path)
     
-    try:
-        if file_format.lower() == 'parquet':
-            df = wr.s3.read_parquet(f"s3://{bucket}/{key}")
-        elif file_format.lower() == 'csv':
-            df = wr.s3.read_csv(f"s3://{bucket}/{key}")
-        elif file_format.lower() == 'json':
-            df = wr.s3.read_json(f"s3://{bucket}/{key}")
-        else:
-            raise ValueError(f"Unsupported file format: {file_format}")
-        
-        logger.info(f"Successfully loaded data: {df.shape}")
-        return df
-        
-    except Exception as e:
-        logger.error(f"Error loading data from S3: {str(e)}")
-        raise
+    # Apply sampling if requested
+    if sample_fraction:
+        df = sample_data(df, sample_fraction, random_state=42)
+    
+    return df
 
 
 def load_from_local(file_path: Path) -> pd.DataFrame:
@@ -242,13 +224,13 @@ def main(
     
     Examples:
         # Load from local file
-        python -m nutrisage.dataset --input data/raw/nutrition_data.csv
+        python -m src.dataset --input data/raw/nutrition_data.csv
         
         # Load from S3
-        python -m nutrisage.dataset --source s3 --input s3://nutrisage/data/nutrition_data.parquet
+        python -m src.dataset --source s3 --input s3://nutrisage/data/nutrition_data.parquet
         
         # Sample 10% of data
-        python -m nutrisage.dataset --input data.csv --sample 0.1
+        python -m src.dataset --input data.csv --sample 0.1
     """
     logger.info("Starting data loading and processing...")
     
@@ -266,7 +248,7 @@ def main(
             else:
                 raise ValueError("Invalid S3 URI format. Use: s3://bucket/key")
             
-            df = load_from_s3(bucket, key)
+            df = load_from_s3(bucket, key, sample_fraction)
             
         else:  # local
             if not input_path:

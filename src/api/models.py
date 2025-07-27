@@ -18,13 +18,12 @@ class NutritionGrade(str, Enum):
 
 class NutritionInput(BaseModel):
     """Input model for nutrition data prediction."""
+    energy_kcal_100g: float = Field(..., ge=0, description="Energy content per 100g (kcal)")
     fat_100g: float = Field(..., ge=0, description="Fat content per 100g")
     carbohydrates_100g: float = Field(..., ge=0, description="Carbohydrates per 100g")
-    proteins_100g: float = Field(..., ge=0, description="Proteins per 100g")
-    salt_100g: float = Field(..., ge=0, description="Salt content per 100g")
     sugars_100g: float = Field(..., ge=0, description="Sugars per 100g")
-    fiber_100g: float = Field(..., ge=0, description="Fiber per 100g")
-    saturated_fat_100g: float = Field(..., ge=0, description="Saturated fat per 100g")
+    proteins_100g: float = Field(..., ge=0, description="Proteins per 100g")
+    sodium_100g: float = Field(..., ge=0, description="Sodium content per 100g")
 
 
 class PredictionResponse(BaseModel):
