@@ -81,6 +81,26 @@ create_environment:
 data: requirements
 	$(PYTHON_INTERPRETER) nutrisage/dataset.py
 
+## Preprocess data
+.PHONY: preprocess
+preprocess: requirements
+	$(PYTHON_INTERPRETER) -m nutrisage.preprocessing
+
+## Train the nutrition grade model
+.PHONY: train
+train: requirements
+	$(PYTHON_INTERPRETER) -m nutrisage.modeling.train
+
+## Train with preprocessing pipeline
+.PHONY: train-full
+train-full: requirements
+	$(PYTHON_INTERPRETER) -m nutrisage.modeling.train --use-preprocessing-pipeline --sample-fraction 0.1
+
+## Make predictions with trained model
+.PHONY: predict
+predict: requirements
+	$(PYTHON_INTERPRETER) -m nutrisage.modeling.predict
+
 
 #################################################################################
 # Self Documenting Commands                                                     #

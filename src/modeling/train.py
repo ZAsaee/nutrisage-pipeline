@@ -31,8 +31,7 @@ def load_and_preprocess_data(features_path: Path, labels_path: Path) -> tuple:
     data = data.dropna()
     
     # Separate features and target
-    # Assuming the target column is 'nutrition_grade' or 'grade'
-    target_col = None
+    target_col = 'nutrition_grade_fr'
     for col in ['nutrition_grade', 'grade', 'nutrition_grade_fr', 'nutrition-score-fr_100g']:
         if col in data.columns:
             target_col = col
@@ -62,6 +61,45 @@ def load_and_preprocess_data(features_path: Path, labels_path: Path) -> tuple:
     logger.info(f"Feature columns: {feature_cols}")
     
     return X, y, feature_cols, label_encoder
+
+
+def run_preprocessing_pipeline(raw_data_path: Path, sample_fraction: float = None) -> tuple:
+    """Run the complete preprocessing pipeline."""
+    from nutrisage.preprocessing import NutritionDataPreprocessor
+    
+    logger.info("Running preprocessing pipeline...")
+    
+    # Initialize preprocessor with sampling if specified
+    config = {}
+    if sample_fraction:
+        config['sample_fraction'] = sample_fraction
+        config['random_state'] = 42
+    
+    preprocessor = NutritionDataPreprocessor(config)
+    
+    # Run preprocessing
+    features_df, target_df, feature_columns, target_col = preprocessor.preprocess(
+        raw_data_path, save_intermediate=True
+    )
+    
+    # Prepare for modeling
+    X = features_df
+    y = target_df[target_col]
+    
+    # Encode target labels if they're strings
+    if y.dtype == 'object':
+        label_encoder = LabelEncoder()
+        y = label_encoder.fit_transform(y)
+        logger.info(f"Encoded labels: {dict(zip(label_encoder.classes_, range(len(label_encoder.classes_))))}")
+    else:
+        label_encoder = None
+    
+    logger.info(f"Preprocessing completed. Final shapes:")
+    logger.info(f"  Features: {X.shape}")
+    logger.info(f"  Target: {y.shape}")
+    logger.info(f"  Feature columns: {len(feature_columns)}")
+    
+    return X, y, feature_columns, label_encoder
 
 
 def train_xgboost_model(X: pd.DataFrame, y: pd.Series, feature_cols: list) -> tuple:
@@ -153,17 +191,30 @@ def save_model_and_metadata(
 
 @app.command()
 def main(
+    raw_data_path: Path = RAW_DATA_DIR / "data.parquet",
     features_path: Path = PROCESSED_DATA_DIR / "features.csv",
     labels_path: Path = PROCESSED_DATA_DIR / "labels.csv",
     model_path: Path = MODELS_DIR / "nutrition_grade_model.pkl",
     metadata_path: Path = MODELS_DIR / "model_metadata.pkl",
+    sample_fraction: float = None,
+    use_preprocessing_pipeline: bool = True,
 ):
     """Train XGBoost model for nutrition grade prediction."""
     logger.info("Starting nutrition grade prediction model training...")
     
     try:
-        # Load and preprocess data
-        X, y, feature_cols, label_encoder = load_and_preprocess_data(features_path, labels_path)
+        # Choose preprocessing method
+        if use_preprocessing_pipeline and raw_data_path.exists():
+            logger.info("Using preprocessing pipeline from raw data...")
+            X, y, feature_cols, label_encoder = run_preprocessing_pipeline(raw_data_path, sample_fraction)
+        elif features_path.exists() and labels_path.exists():
+            logger.info("Using pre-existing features and labels...")
+            X, y, feature_cols, label_encoder = load_and_preprocess_data(features_path, labels_path)
+        else:
+            raise FileNotFoundError(
+                f"Neither raw data ({raw_data_path}) nor processed features ({features_path}) found. "
+                "Please ensure data is available."
+            )
         
         # Train model
         model, X_test, y_test, y_pred, feature_importance = train_xgboost_model(X, y, feature_cols)
