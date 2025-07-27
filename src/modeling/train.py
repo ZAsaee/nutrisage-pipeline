@@ -11,7 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb
 import typer
 
-from nutrisage.config import MODELS_DIR, PROCESSED_DATA_DIR
+from src.config import MODELS_DIR, PROCESSED_DATA_DIR
 
 app = typer.Typer()
 
@@ -65,7 +65,7 @@ def load_and_preprocess_data(features_path: Path, labels_path: Path) -> tuple:
 
 def run_preprocessing_pipeline(raw_data_path: Path, sample_fraction: float = None) -> tuple:
     """Run the complete preprocessing pipeline."""
-    from nutrisage.preprocessing import NutritionDataPreprocessor
+    from src.preprocessing import NutritionDataPreprocessor
     
     logger.info("Running preprocessing pipeline...")
     
@@ -102,8 +102,8 @@ def run_preprocessing_pipeline(raw_data_path: Path, sample_fraction: float = Non
     return X, y, feature_columns, label_encoder
 
 
-def train_xgboost_model(X: pd.DataFrame, y: pd.Series, feature_cols: list) -> tuple:
-    """Train XGBoost model with hyperparameter tuning."""
+def train_xgboost_model(X: pd.DataFrame, y: pd.Series, feature_cols: list, tune_hyperparameters: bool = False, tuning_method: str = "grid", n_trials: int = 10) -> tuple:
+    """Train XGBoost model with optional hyperparameter tuning."""
     logger.info("Training XGBoost model...")
     
     # Split data
@@ -112,19 +112,32 @@ def train_xgboost_model(X: pd.DataFrame, y: pd.Series, feature_cols: list) -> tu
     )
     
     # XGBoost parameters for nutrition grade classification
-    params = {
+    base_params = {
         'objective': 'multi:softprob',
         'num_class': len(np.unique(y)),
-        'max_depth': 6,
-        'learning_rate': 0.1,
-        'n_estimators': 100,
-        'subsample': 0.8,
-        'colsample_bytree': 0.8,
         'random_state': 42,
         'eval_metric': 'mlogloss'
     }
     
-    # Train model
+    if tune_hyperparameters:
+        logger.info(f"Running hyperparameter tuning with {tuning_method} method ({n_trials} trials)")
+        best_params = perform_hyperparameter_tuning(
+            X_train, y_train, X_test, y_test, base_params, tuning_method, n_trials
+        )
+        params = {**base_params, **best_params}
+        logger.info(f"Best hyperparameters found: {best_params}")
+    else:
+        # Use default parameters
+        params = {
+            **base_params,
+            'max_depth': 6,
+            'learning_rate': 0.1,
+            'n_estimators': 100,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8
+        }
+    
+    # Train model with final parameters
     model = xgb.XGBClassifier(**params)
     model.fit(
         X_train, y_train,
@@ -155,6 +168,173 @@ def train_xgboost_model(X: pd.DataFrame, y: pd.Series, feature_cols: list) -> tu
         logger.info(f"  {row['feature']}: {row['importance']:.4f}")
     
     return model, X_test, y_test, y_pred, feature_importance
+
+
+def perform_hyperparameter_tuning(
+    X_train: pd.DataFrame, 
+    y_train: pd.Series, 
+    X_test: pd.DataFrame, 
+    y_test: pd.Series,
+    base_params: dict,
+    method: str = "grid",
+    n_trials: int = 10
+) -> dict:
+    """
+    Perform hyperparameter tuning using different methods.
+    
+    Args:
+        X_train, y_train: Training data
+        X_test, y_test: Validation data
+        base_params: Base XGBoost parameters
+        method: Tuning method ('grid', 'random', 'bayesian')
+        n_trials: Number of trials for random/bayesian search
+        
+    Returns:
+        Best hyperparameters found
+    """
+    logger.info(f"Starting hyperparameter tuning with {method} search")
+    
+    if method == "grid":
+        return perform_grid_search(X_train, y_train, X_test, y_test, base_params)
+    elif method == "random":
+        return perform_random_search(X_train, y_train, X_test, y_test, base_params, n_trials)
+    elif method == "bayesian":
+        return perform_bayesian_search(X_train, y_train, X_test, y_test, base_params, n_trials)
+    else:
+        raise ValueError(f"Unknown tuning method: {method}")
+
+
+def perform_grid_search(
+    X_train: pd.DataFrame, 
+    y_train: pd.Series, 
+    X_test: pd.DataFrame, 
+    y_test: pd.Series,
+    base_params: dict
+) -> dict:
+    """Perform grid search hyperparameter tuning."""
+    from sklearn.model_selection import GridSearchCV
+    
+    # Define parameter grid
+    param_grid = {
+        'max_depth': [3, 4, 5, 6, 7],
+        'learning_rate': [0.01, 0.05, 0.1, 0.15],
+        'n_estimators': [50, 100, 150],
+        'subsample': [0.7, 0.8, 0.9],
+        'colsample_bytree': [0.7, 0.8, 0.9]
+    }
+    
+    # Create base model
+    base_model = xgb.XGBClassifier(**base_params)
+    
+    # Perform grid search
+    grid_search = GridSearchCV(
+        base_model,
+        param_grid,
+        cv=3,
+        scoring='accuracy',
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    grid_search.fit(X_train, y_train)
+    
+    logger.info(f"Best grid search score: {grid_search.best_score_:.4f}")
+    logger.info(f"Best parameters: {grid_search.best_params_}")
+    
+    return grid_search.best_params_
+
+
+def perform_random_search(
+    X_train: pd.DataFrame, 
+    y_train: pd.Series, 
+    X_test: pd.DataFrame, 
+    y_test: pd.Series,
+    base_params: dict,
+    n_trials: int = 10
+) -> dict:
+    """Perform random search hyperparameter tuning."""
+    from sklearn.model_selection import RandomizedSearchCV
+    from scipy.stats import uniform, randint
+    
+    # Define parameter distributions
+    param_distributions = {
+        'max_depth': randint(3, 8),
+        'learning_rate': uniform(0.01, 0.19),  # 0.01 to 0.2
+        'n_estimators': randint(50, 200),
+        'subsample': uniform(0.6, 0.3),  # 0.6 to 0.9
+        'colsample_bytree': uniform(0.6, 0.3)  # 0.6 to 0.9
+    }
+    
+    # Create base model
+    base_model = xgb.XGBClassifier(**base_params)
+    
+    # Perform random search
+    random_search = RandomizedSearchCV(
+        base_model,
+        param_distributions,
+        n_iter=n_trials,
+        cv=3,
+        scoring='accuracy',
+        n_jobs=-1,
+        verbose=1,
+        random_state=42
+    )
+    
+    random_search.fit(X_train, y_train)
+    
+    logger.info(f"Best random search score: {random_search.best_score_:.4f}")
+    logger.info(f"Best parameters: {random_search.best_params_}")
+    
+    return random_search.best_params_
+
+
+def perform_bayesian_search(
+    X_train: pd.DataFrame, 
+    y_train: pd.Series, 
+    X_test: pd.DataFrame, 
+    y_test: pd.Series,
+    base_params: dict,
+    n_trials: int = 10
+) -> dict:
+    """Perform Bayesian optimization hyperparameter tuning."""
+    try:
+        from optuna import create_study
+        from optuna.samplers import TPESampler
+    except ImportError:
+        logger.warning("Optuna not installed. Falling back to random search.")
+        return perform_random_search(X_train, y_train, X_test, y_test, base_params, n_trials)
+    
+    def objective(trial):
+        # Define hyperparameter search space
+        params = {
+            **base_params,
+            'max_depth': trial.suggest_int('max_depth', 3, 7),
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2),
+            'n_estimators': trial.suggest_int('n_estimators', 50, 200),
+            'subsample': trial.suggest_float('subsample', 0.6, 0.9),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.9)
+        }
+        
+        # Create and train model
+        model = xgb.XGBClassifier(**params)
+        model.fit(
+            X_train, y_train,
+            eval_set=[(X_test, y_test)],
+            early_stopping_rounds=10,
+            verbose=False
+        )
+        
+        # Return validation accuracy
+        return model.score(X_test, y_test)
+    
+    # Create study and optimize
+    study = create_study(direction='maximize', sampler=TPESampler(seed=42))
+    study.optimize(objective, n_trials=n_trials)
+    
+    logger.info(f"Best Bayesian search score: {study.best_value:.4f}")
+    logger.info(f"Best parameters: {study.best_params}")
+    
+    return study.best_params
 
 
 def save_model_and_metadata(
@@ -198,6 +378,9 @@ def main(
     metadata_path: Path = MODELS_DIR / "model_metadata.pkl",
     sample_fraction: float = None,
     use_preprocessing_pipeline: bool = True,
+    tune_hyperparameters: bool = typer.Option(False, "--tune", help="Run hyperparameter tuning"),
+    tuning_method: str = typer.Option("grid", "--tuning-method", help="Tuning method: 'grid', 'random', 'bayesian'"),
+    n_trials: int = typer.Option(10, "--n-trials", help="Number of trials for tuning"),
 ):
     """Train XGBoost model for nutrition grade prediction."""
     logger.info("Starting nutrition grade prediction model training...")
@@ -217,7 +400,9 @@ def main(
             )
         
         # Train model
-        model, X_test, y_test, y_pred, feature_importance = train_xgboost_model(X, y, feature_cols)
+        model, X_test, y_test, y_pred, feature_importance = train_xgboost_model(
+            X, y, feature_cols, tune_hyperparameters, tuning_method, n_trials
+        )
         
         # Save model and metadata
         save_model_and_metadata(
