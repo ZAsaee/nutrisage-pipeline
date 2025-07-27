@@ -1,0 +1,34 @@
+{
+    "columns_to_drop": [
+        "energy_100g",
+        "main_category",
+        "categories_tags",
+        "brands_tags",
+        "countries_tags",
+        "serving_size",
+        "created_t",
+        "year",
+        "country"
+    ],
+    "target_column": "nutrition_grade_fr",
+    "invalid_grades": ["unknown", "not-applicable"],
+    "outlier_threshold": 100,
+    "outlier_columns": [
+        "fat_100g",
+        "carbohydrates_100g", 
+        "proteins_100g",
+        "salt_100g",
+        "sugars_100g"
+    ],
+    "sample_fraction": null,
+    "random_state": 42,
+    "feature_engineering": {
+        "create_ratios": true,
+        "create_totals": true,
+        "create_interactions": false
+    },
+    "missing_value_strategy": {
+        "numeric": "median",
+        "categorical": "mode"
+    }
+} 
