@@ -34,8 +34,8 @@ def test_model_training_with_sample_data():
     assert hasattr(model, 'predict_proba')
     
             # Check predictions
-        assert len(y_pred) == len(X_test)
-        assert all(pred in ['a', 'b', 'c', 'd', 'e'] for pred in y_pred)
+    assert len(y_pred) == len(X_test)
+    assert all(pred in ['a', 'b', 'c', 'd', 'e'] for pred in y_pred)
 
 
 def test_model_saving_and_loading():
