@@ -1,17 +1,17 @@
 # Data
 /data/
 
-# Model files (should not be version controlled)
-models/*.pkl
-models/*.joblib
-models/*.h5
-models/*.onnx
-models/*.pb
-*.pkl
-*.joblib
-*.h5
-*.onnx
-*.pb
+# Model files (keep in git for deployment)
+# models/*.pkl
+# models/*.joblib
+# models/*.h5
+# models/*.onnx
+# models/*.pb
+# *.pkl
+# *.joblib
+# *.h5
+# *.onnx
+# *.pb
 
 # Mac OS-specific storage files
 .DS_Store
