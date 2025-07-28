@@ -27,8 +27,8 @@ RUN grep -v "^-e" requirements.txt > requirements-docker.txt && \
 # Copy application code
 COPY . .
 
-# Install the package in development mode
-RUN pip install -e .
+# Set PYTHONPATH to include src directory for imports
+ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Set proper permissions
 RUN chmod +x scripts/deploy.sh
