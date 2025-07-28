@@ -38,7 +38,30 @@ format:
 ## Run tests
 .PHONY: test
 test:
-	python -m pytest tests -v
+	$(PYTHON_INTERPRETER) -m pytest tests -v
+
+## Run API server
+.PHONY: api
+api: requirements
+	$(PYTHON_INTERPRETER) -m uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+
+## Build and run with Docker
+.PHONY: docker-build
+docker-build:
+	docker build -t nutrisage-api .
+
+.PHONY: docker-run
+docker-run: docker-build
+	docker-compose up -d
+
+.PHONY: docker-stop
+docker-stop:
+	docker-compose down
+
+## Create necessary directories
+.PHONY: setup
+setup:
+	mkdir -p data/raw data/processed models reports/figures
 
 ## Run specific test files
 .PHONY: test-data
@@ -98,7 +121,7 @@ plots: requirements
 
 ## Run complete pipeline (preprocess -> train -> predict)
 .PHONY: pipeline
-pipeline: requirements
+pipeline: setup requirements
 	$(PYTHON_INTERPRETER) -m src.preprocessing
 	$(PYTHON_INTERPRETER) -m src.modeling.train --use-preprocessing-pipeline
 	$(PYTHON_INTERPRETER) -m src.modeling.predict

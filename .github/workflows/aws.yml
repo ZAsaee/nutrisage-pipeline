@@ -9,6 +9,7 @@ env:
   ECR_REPOSITORY: nutrisage-mlops
   ECS_CLUSTER: nutrisage-cluster
   ECS_SERVICE: nutrisage-api-service
+  ECS_TASK_DEFINITION: nutrisage-task-definition
 
 jobs:
   deploy:
@@ -35,10 +36,93 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Create ECS task definition
+      env:
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      run: |
+        # Create task definition from template
+        cat > task-definition.json << EOF
+        {
+          "family": "$ECS_TASK_DEFINITION",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "cpu": "512",
+          "memory": "1024",
+          "executionRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsTaskExecutionRole",
+          "taskRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsTaskRole",
+          "containerDefinitions": [
+            {
+              "name": "nutrisage-api",
+              "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}",
+              "portMappings": [
+                {
+                  "containerPort": 8000,
+                  "protocol": "tcp"
+                }
+              ],
+              "essential": true,
+              "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                  "awslogs-group": "/ecs/nutrisage-api",
+                  "awslogs-region": "${{ env.AWS_REGION }}",
+                  "awslogs-stream-prefix": "ecs"
+                }
+              },
+              "environment": [
+                {
+                  "name": "HOST",
+                  "value": "0.0.0.0"
+                },
+                {
+                  "name": "PORT",
+                  "value": "8000"
+                },
+                {
+                  "name": "DATA_SOURCE",
+                  "value": "local"
+                },
+                {
+                  "name": "MODEL_PATH",
+                  "value": "/app/models/nutrition_grade_model.pkl"
+                },
+                {
+                  "name": "METADATA_PATH",
+                  "value": "/app/models/model_metadata.pkl"
+                }
+              ],
+              "healthCheck": {
+                "command": [
+                  "CMD-SHELL",
+                  "curl -f http://localhost:8000/health || exit 1"
+                ],
+                "interval": 30,
+                "timeout": 5,
+                "retries": 3,
+                "startPeriod": 60
+              }
+            }
+          ]
+        }
+        EOF
+
+    - name: Register new ECS task definition
+      run: |
+        aws ecs register-task-definition \
+          --cli-input-json file://new-task-definition.json
 
     - name: Deploy to ECS
       run: |
         aws ecs update-service \
           --cluster $ECS_CLUSTER \
           --service $ECS_SERVICE \
-          --force-new-deployment 
+          --task-definition $ECS_TASK_DEFINITION \
+          --force-new-deployment
+
+    - name: Wait for service to stabilize
+      run: |
+        aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE 
