@@ -111,7 +111,7 @@ jobs:
     - name: Register new ECS task definition
       run: |
         aws ecs register-task-definition \
-          --cli-input-json file://new-task-definition.json
+          --cli-input-json file://task-definition.json
 
     - name: Deploy to ECS
       run: |
