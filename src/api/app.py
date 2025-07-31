@@ -11,47 +11,33 @@ import uvicorn
 from .endpoints import router
 from .utils import ModelManager
 
-# Global variables for startup/shutdown
-model_manager = None
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager for startup and shutdown events."""
-    # Startup
+    """Initialize model manager and other resources on startup."""
     logger.info("Starting NutriSage API...")
     
+    # Initialize model manager
     try:
-        global model_manager
-        model_manager = ModelManager()
-        
-        if model_manager.is_ready():
-            logger.success("Model loaded successfully!")
-        else:
-            logger.error("Failed to load model")
-            
+        ModelManager()
+        logger.success("Model loaded successfully!")
     except Exception as e:
-        logger.error(f"Startup error: {e}")
-        raise
-    
+        logger.error(f"Failed to load model during startup: {e}")
+
     yield
     
-    # Shutdown
     logger.info("Shutting down NutriSage API...")
 
 
-# Create FastAPI application
+# Create app
 app = FastAPI(
     title="NutriSage API",
-    description="ML-powered nutrition grade prediction service",
+    description="API for predicting nutrition grades of food products.",
     version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    lifespan=lifespan
 )
 
-# Include API routes
-app.include_router(router, prefix="/api/v1", tags=["predictions"])
+# Include router
+app.include_router(router, prefix="/api")
 
 
 # Root endpoint
