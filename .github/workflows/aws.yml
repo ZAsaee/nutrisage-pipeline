@@ -1,25 +1,58 @@
-name: Deploy to AWS
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy a new task definition to Amazon ECS, when there is a push to the main branch.
+#
+# To use this workflow, you will need to complete the following set-up steps:
+#
+# 1. Create an ECR repository to store your images.
+#    For example: `aws ecr create-repository --repository-name my-ecr-repo --region us-east-2`.
+#    Replace the value of the `ECR_REPOSITORY` environment variable in the workflow below with your repository's name.
+#    Replace the value of the `AWS_REGION` environment variable in the workflow below with your repository's region.
+#
+# 2. Create an ECS task definition, an ECS cluster, and an ECS service.
+#    For example, follow the Getting Started guide on the ECS console:
+#      https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/firstRun
+#    Replace the value of the `ECS_SERVICE` environment variable in the workflow below with the name you set for the Amazon ECS service.
+#    Replace the value of the `ECS_CLUSTER` environment variable in the workflow below with the name you set for the cluster.
+#
+# 3. Store your ECS task definition as a JSON file in your repository.
+#    The format should follow the output of `aws ecs register-task-definition --generate-cli-skeleton`.
+#    Replace the value of the `ECS_TASK_DEFINITION` environment variable in the workflow below with the path to the JSON file.
+#    Replace the value of the `CONTAINER_NAME` environment variable in the workflow below with the name of the container
+#    in the `containerDefinitions` section of the task definition.
+#
+# 4. Store an IAM user access key in GitHub Actions secrets named `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+#    See the documentation for each action used below for the recommended IAM policies for this IAM user,
+#    and best practices on handling the access key credentials.
+
+name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: nutrisage-mlops
-  ECS_CLUSTER: nutrisage-cluster
-  ECS_SERVICE: nutrisage-api-service
-  ECS_TASK_DEFINITION: nutrisage-task-definition
+  AWS_REGION: us-east-1                   # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: nutrisage-mlops           # set this to your Amazon ECR repository name
+  ECS_SERVICE: nutrisage-api-service    # set this to your Amazon ECS service name
+  ECS_CLUSTER: nutrisage-cluster                 # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: nutrisage-task-definition # set this to the path to your Amazon ECS task definition
+                                               # file, e.g. .aws/task-definition.json
+  CONTAINER_NAME: nutrisage-api           # set this to the name of the container in the
+                                               # containerDefinitions section of your task definition
 
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    environment: production
+
     steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@0e613a0980cbf65ed5b322eb7a1e075d28913a83
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -27,114 +60,37 @@ jobs:
 
     - name: Login to Amazon ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      uses: aws-actions/amazon-ecr-login@62f4f872db3836360b72999f4b87f1ff13310f3a
 
-    - name: Build and push to ECR
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Create ECS task definition
-      env:
-        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+    - name: Download task definition
       run: |
-        # Create task definition from template
-        cat > task-definition.json << EOF
-        {
-          "family": "$ECS_TASK_DEFINITION",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "cpu": "512",
-          "memory": "1024",
-          "executionRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsTaskExecutionRole",
-          "taskRoleArn": "arn:aws:iam::$AWS_ACCOUNT_ID:role/ecsTaskRole",
-          "containerDefinitions": [
-            {
-              "name": "nutrisage-api",
-              "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}",
-              "portMappings": [
-                {
-                  "containerPort": 8000,
-                  "protocol": "tcp"
-                }
-              ],
-              "essential": true,
-              "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                  "awslogs-group": "/ecs/nutrisage-api",
-                  "awslogs-region": "${{ env.AWS_REGION }}",
-                  "awslogs-stream-prefix": "ecs"
-                }
-              },
-              "environment": [
-                {
-                  "name": "HOST",
-                  "value": "0.0.0.0"
-                },
-                {
-                  "name": "PORT",
-                  "value": "8000"
-                },
-                {
-                  "name": "DATA_SOURCE",
-                  "value": "local"
-                },
-                {
-                  "name": "MODEL_PATH",
-                  "value": "/app/models/nutrition_grade_model.pkl"
-                },
-                {
-                  "name": "METADATA_PATH",
-                  "value": "/app/models/model_metadata.pkl"
-                }
-              ],
-              "healthCheck": {
-                "command": [
-                  "CMD-SHELL",
-                  "curl -f http://localhost:8000/health | grep -q '\"status\":\"healthy\"' || exit 1"
-                ],
-                "interval": 45,
-                "timeout": 15,
-                "retries": 3,
-                "startPeriod": 120
-              }
-            }
-          ]
-        }
-        EOF
+        aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
 
-    - name: Register new ECS task definition
-      run: |
-        aws ecs register-task-definition \
-          --cli-input-json file://task-definition.json
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@c804dfbdd57f713b6c079302a4c01db7017a36fc
+      with:
+        task-definition: task-definition.json
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
 
-    - name: Deploy to ECS
-      run: |
-        aws ecs update-service \
-          --cluster $ECS_CLUSTER \
-          --service $ECS_SERVICE \
-          --task-definition $ECS_TASK_DEFINITION \
-          --health-check-grace-period-seconds 120 \
-          --force-new-deployment
-
-    - name: Install AWS CLI and wait for service stabilization
-      run: |
-        echo "Installing AWS CLI v2..."
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install --update
-        rm -rf awscliv2.zip aws
-        echo "Verifying AWS CLI version and path:"
-        which aws
-        /usr/local/bin/aws --version
-        echo "Waiting for service to stabilize..."
-        /usr/local/bin/aws ecs wait services-stable \
-          --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE \
-          --delay 30 \
-          --max-attempts 40 
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@df9643053eda01f169e64a0e60233aacca83799a
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true 
