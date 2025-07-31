@@ -98,10 +98,10 @@ jobs:
                   "CMD-SHELL",
                   "curl -f http://localhost:8000/health || exit 1"
                 ],
-                "interval": 30,
-                "timeout": 5,
+                "interval": 45,
+                "timeout": 15,
                 "retries": 3,
-                "startPeriod": 60
+                "startPeriod": 120
               }
             }
           ]
@@ -119,10 +119,12 @@ jobs:
           --cluster $ECS_CLUSTER \
           --service $ECS_SERVICE \
           --task-definition $ECS_TASK_DEFINITION \
+          --health-check-grace-period-seconds 120 \
           --force-new-deployment
 
     - name: Wait for service to stabilize
       run: |
         aws ecs wait services-stable \
           --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE 
+          --services $ECS_SERVICE \
+          --waiter-config '{"Delay":30,"MaxAttempts":40}' 
