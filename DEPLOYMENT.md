@@ -163,7 +163,7 @@ aws ecs describe-services \
 ### Test the API
 ```bash
 # Get the public IP of your ECS task
-curl http://YOUR_PUBLIC_IP:8000/health
+curl http://YOUR_PUBLIC_IP:8000/api/health
 ```
 
 ## Troubleshooting
@@ -172,7 +172,7 @@ curl http://YOUR_PUBLIC_IP:8000/health
 
 1. **Task fails to start**: Check CloudWatch logs for container startup errors
 2. **Image pull fails**: Verify ECR repository exists and image was pushed successfully
-3. **Health check fails**: Ensure the `/health` endpoint is working in the container
+3. **Health check fails**: Ensure the `/api/health` endpoint is working in the container and that the security groups are correctly configured to allow traffic from the load balancer.
 4. **Permission errors**: Verify IAM roles have correct permissions
 5. **Account ID errors**: Ensure `AWS_ACCOUNT_ID` secret is set correctly in GitHub
 

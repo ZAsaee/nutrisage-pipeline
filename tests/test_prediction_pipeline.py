@@ -132,7 +132,7 @@ def test_prediction_probabilities():
     # Make prediction with probabilities
     metadata = {'feature_columns': feature_columns}
     X_test_processed = preprocess_input_data(test_data, metadata, None)
-    results = make_predictions(loaded_model, X_test_processed, metadata, return_probabilities=True)
+    results = make_predictions(model, X_test_processed, metadata, return_probabilities=True)
     
     # Check probabilities
     assert 'probabilities' in results

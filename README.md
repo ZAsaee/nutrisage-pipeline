@@ -261,12 +261,12 @@ docker-compose down
 
 #### Health Check
 ```http
-GET /health
+GET /api/health
 ```
 
 #### Single Prediction
 ```http
-POST /predict
+POST /api/predict
 Content-Type: application/json
 
 {

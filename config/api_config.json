@@ -32,7 +32,11 @@
   },
   "health_check": {
     "enabled": true,
-    "endpoint": "/health",
+    "name": "health",
+    "description": "API health check",
+    "path": "/api/health",
+    "method": "GET",
+    "public": true,
     "interval": 30
   }
 } 

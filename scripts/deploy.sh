@@ -108,19 +108,19 @@ run_container() {
 check_api_health() {
     print_status "Checking API health..."
     
-    # Wait for API to be ready
-    local max_attempts=30
-    local attempt=1
-    
-    while [ $attempt -le $max_attempts ]; do
-        if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-            print_success "API is healthy and ready!"
-            return 0
+    # Wait for API to be healthy
+    print_status "Waiting for API to be healthy..."
+    RETRY_COUNT=0
+    MAX_RETRIES=12
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -f http://localhost:8000/api/health > /dev/null 2>&1; then
+            print_success "API is healthy!"
+            break
+        else
+            print_status "Waiting for API to be ready... (attempt $attempt/$max_attempts)"
+            sleep 2
+            attempt=$((attempt + 1))
         fi
-        
-        print_status "Waiting for API to be ready... (attempt $attempt/$max_attempts)"
-        sleep 2
-        attempt=$((attempt + 1))
     done
     
     print_error "API failed to start within expected time"
@@ -229,14 +229,15 @@ main() {
     print_success "Deployment completed!"
     echo ""
     print_status "API endpoints:"
-    echo "  - Health check: http://localhost:8000/health"
-    echo "  - API docs: http://localhost:8000/docs"
-    echo "  - Predict: http://localhost:8000/api/v1/predict"
+    echo "Endpoints:"
+    echo "  - Docs: http://localhost:8000/docs"
+    echo "  - Health: http://localhost:8000/api/health"
+    echo "  - Predict: http://localhost:8000/api/predict"
     echo ""
-    print_status "To test the API:"
-    echo "  curl -X POST http://localhost:8000/api/v1/predict \\"
-    echo "    -H \"Content-Type: application/json\" \\"
-    echo "    -d '{\"energy_kcal_100g\": 150, \"fat_100g\": 5.2, \"carbohydrates_100g\": 25.0, \"sugars_100g\": 12.0, \"proteins_100g\": 8.0, \"sodium_100g\": 0.3}'"
+    echo "Example predict request:"
+    echo "  curl -X POST http://localhost:8000/api/predict \\"
+    echo "    -H 'Content-Type: application/json' \\"
+    echo "    -d '{\"energy_kcal_100g\": 250, \"fat_100g\": 12, \"saturates_100g\": 3, \"carbohydrates_100g\": 25, \"sugars_100g\": 5, \"proteins_100g\": 8, \"sodium_100g\": 0.5, \"pnns_groups_1\": \"fruits\", \"pnns_groups_2\": \"fruits\"}'"
     echo ""
     print_status "To view logs:"
     echo "  docker logs nutrisage-api"

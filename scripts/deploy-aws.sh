@@ -172,17 +172,16 @@ create_task_definition() {
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
-                    "awslogs-group": "/ecs/$ECS_TASK_DEFINITION",
+                    "awslogs-group": "/ecs/nutrisage-api",
                     "awslogs-region": "$AWS_REGION",
                     "awslogs-stream-prefix": "ecs"
                 }
             },
             "healthCheck": {
-                "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+                "command": ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"],
                 "interval": 30,
                 "timeout": 5,
-                "retries": 3,
-                "startPeriod": 60
+                "retries": 3
             }
         }
     ]
@@ -289,13 +288,13 @@ check_service_status() {
                 print_status "Your NutriSage API is now running at:"
                 echo "  🌐 http://$PUBLIC_IP:8000"
                 echo ""
-                print_status "API endpoints:"
-                echo "  - Health check: http://$PUBLIC_IP:8000/health"
-                echo "  - API docs: http://$PUBLIC_IP:8000/docs"
-                echo "  - Predict: http://$PUBLIC_IP:8000/api/v1/predict"
+                print_status "Endpoints:"
+                echo "  - Docs: http://$PUBLIC_IP:8000/docs"
+                echo "  - Health: http://$PUBLIC_IP:8000/api/health"
+                echo "  - Predict: http://$PUBLIC_IP:8000/api/predict"
                 echo ""
                 print_status "To test the API:"
-                echo "  curl -X POST http://$PUBLIC_IP:8000/api/v1/predict \\"
+                echo "  curl -X POST http://$PUBLIC_IP:8000/api/predict \\"
                 echo "    -H \"Content-Type: application/json\" \\"
                 echo "    -d '{\"energy_kcal_100g\": 150, \"fat_100g\": 5.2, \"carbohydrates_100g\": 25.0, \"sugars_100g\": 12.0, \"proteins_100g\": 8.0, \"sodium_100g\": 0.3}'"
                 echo ""

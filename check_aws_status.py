@@ -287,6 +287,12 @@ def main():
 
     logger.info("--- ALB Status ---")
     alb_dns = check_alb()
+    logger.info(f"ALB DNS: {alb_dns}")
+    logger.info(f"Target group ARN: {target_group_arn}")
+    logger.info(f"API endpoint: https://{alb_dns}/api/predict")
+    
+    # Check application health
+    health_url = f"https://{alb_dns}/api/health"
 
     logger.info("--- Target Health ---")
     check_target_health()
@@ -299,7 +305,7 @@ def main():
 
     if alb_dns:
         logger.success(f"ALB is available at: https://{alb_dns}")
-        logger.info(f"API endpoint: https://{alb_dns}/api/v1/predict")
+        logger.info(f"API endpoint: https://{alb_dns}/api/predict")
     else:
         logger.warning("ALB not found or not configured")
 

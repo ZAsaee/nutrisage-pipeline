@@ -12,17 +12,15 @@ def test_api():
     """Test basic API connectivity."""
 
     # Get the target URL from environment
-    target_url = os.getenv("TARGET_URL")
-    if not target_url:
-        logger.error("TARGET_URL not set")
-        return
+    target_url = os.getenv("API_URL", "http://localhost:8000")
+    logger.info(f"Target URL: {target_url}")
 
-    # Add the /predict route
-    api_url = target_url.rstrip("/") + "/api/v1/predict"
+    # Construct prediction URL
+    api_url = target_url.rstrip("/") + "/api/predict"
     logger.info(f"Testing API at: {api_url}")
 
-    # Test payload
-    test_payload = {
+    # Sample data for prediction
+    sample_data = {
         "energy_kcal_100g": 250.0,
         "fat_100g": 12.0,
         "carbohydrates_100g": 30.0,
@@ -38,7 +36,7 @@ def test_api():
     try:
         # Test with httpx
         with httpx.Client(timeout=10.0) as client:
-            response = client.post(api_url, json=test_payload)
+            response = client.post(api_url, json=sample_data)
             logger.info(f"Response status: {response.status_code}")
             logger.info(f"Response body: {response.text}")
 

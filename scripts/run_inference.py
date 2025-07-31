@@ -32,7 +32,10 @@ from loguru import logger
 # ---------------------------------------------------------------------------
 # Configuration via env vars -------------------------------------------------
 # ---------------------------------------------------------------------------
-API_ROUTE = "/api/v1/predict"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_ROUTE = "/api/predict"
+CSV_PATH = os.getenv("CSV_PATH", "data/sample_nutrition_data.csv")
+MAX_REQUESTS = int(os.getenv("MAX_REQUESTS", "10"))
 TARGET_URL = os.getenv("TARGET_URL")
 INPUT_PREFIX = os.getenv("INPUT_PREFIX", "s3://nutrisage/data")
 WORKERS = int(os.getenv("WORKERS", "50"))
