@@ -123,7 +123,7 @@ jobs:
           --force-new-deployment
 
     - name: Install AWS CLI v2
-      uses: aws-actions/setup-aws-cli@v2        # <-- adds CLI v2.x to PATH
+      uses: aws-actions/setup-aws-cli@v3        # installs latest AWS CLI v2
 
     - name: Wait for service to stabilize
       run: |
