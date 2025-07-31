@@ -141,9 +141,18 @@ def get_health_status() -> dict:
     """Get health status of the API service."""
     try:
         model_manager = ModelManager()
+        model_ready = model_manager.is_ready()
+        
+        if not model_ready:
+            logger.warning("Model not yet loaded, API is warming up.")
+            return {
+                "status": "warming_up",
+                "model_loaded": False
+            }
+            
         return {
             "status": "healthy",
-            "model_loaded": model_manager.is_ready()
+            "model_loaded": True
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")

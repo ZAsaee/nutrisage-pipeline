@@ -3,6 +3,7 @@ API endpoints for the NutriSage nutrition grade prediction service.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from loguru import logger
 import time
 
@@ -55,6 +56,11 @@ async def health_check():
     """Check the health status of the API service."""
     try:
         health_data = get_health_status()
+        if health_data["status"] == "warming_up":
+            return JSONResponse(
+                status_code=503,
+                content=health_data,
+            )
         return HealthResponse(**health_data)
     except Exception as e:
         logger.error(f"Health check error: {e}")

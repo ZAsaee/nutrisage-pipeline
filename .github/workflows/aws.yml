@@ -96,7 +96,7 @@ jobs:
               "healthCheck": {
                 "command": [
                   "CMD-SHELL",
-                  "curl -f http://localhost:8000/health || exit 1"
+                  "curl -f http://localhost:8000/health | grep -q '\"status\":\"healthy\"' || exit 1"
                 ],
                 "interval": 45,
                 "timeout": 15,
@@ -121,6 +121,14 @@ jobs:
           --task-definition $ECS_TASK_DEFINITION \
           --health-check-grace-period-seconds 120 \
           --force-new-deployment
+
+    - name: Install latest AWS CLI
+      run: |
+        echo "Installing AWS CLI v2..."
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip -q awscliv2.zip
+        sudo ./aws/install --update > /dev/null
+        rm -rf awscliv2.zip aws
 
     - name: Wait for service to stabilize
       run: |
