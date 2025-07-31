@@ -129,10 +129,11 @@ jobs:
         unzip awscliv2.zip
         sudo ./aws/install --update
         rm -rf awscliv2.zip aws
-        echo "Verifying AWS CLI version:"
-        aws --version
+        echo "Verifying AWS CLI version and path:"
+        which aws
+        /usr/local/bin/aws --version
         echo "Waiting for service to stabilize..."
-        aws ecs wait services-stable \
+        /usr/local/bin/aws ecs wait services-stable \
           --cluster $ECS_CLUSTER \
           --services $ECS_SERVICE \
           --delay 30 \
