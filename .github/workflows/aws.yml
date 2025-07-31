@@ -127,5 +127,5 @@ jobs:
         aws ecs wait services-stable \
           --cluster $ECS_CLUSTER \
           --services $ECS_SERVICE \
-          --waiter-delay 30 \
-          --waiter-max-attempts 40 
+          --delay 30 \
+          --max-attempts 40 
