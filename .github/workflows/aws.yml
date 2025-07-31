@@ -122,9 +122,6 @@ jobs:
           --health-check-grace-period-seconds 120 \
           --force-new-deployment
 
-    - name: Install AWS CLI v2
-      uses: aws-actions/setup-aws-cli@v3        # installs latest AWS CLI v2
-
     - name: Wait for service to stabilize
       run: |
         aws ecs wait services-stable \
