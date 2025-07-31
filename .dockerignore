@@ -69,8 +69,6 @@ logs/
 # Data (will be mounted as volumes)
 data/raw/data.parquet
 data/processed/clean_data.parquet
-models/nutrition_grade_model.pkl
-models/model_metadata.pkl
 reports/figures/*.png
 
 # Jupyter notebooks
