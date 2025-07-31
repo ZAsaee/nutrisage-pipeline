@@ -48,25 +48,11 @@ async def root():
         "service": "NutriSage API",
         "version": "1.0.0",
         "endpoints": {
-            "predict": "/api/v1/predict",
-            "health": "/api/v1/health",
+            "predict": "/api/predict",
+            "health": "/api/health",
             "docs": "/docs"
         }
     }
-
-
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for load balancers."""
-    try:
-        if model_manager and model_manager.is_ready():
-            return {"status": "healthy", "model": "loaded"}
-        else:
-            return {"status": "unhealthy", "model": "not_loaded"}
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
 
 
 if __name__ == "__main__":
