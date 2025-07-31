@@ -90,15 +90,22 @@ def predict_nutrition_grade(nutrition_data: NutritionInput) -> PredictionRespons
             if api_name in input_dict:
                 input_dict[model_name] = input_dict.pop(api_name)
 
-        # Create derived features (ratios and totals)
-        input_dict['fat_carb_ratio'] = input_dict['fat_100g'] / \
-            (input_dict['carbohydrates_100g'] + 1e-8)
-        input_dict['protein_carb_ratio'] = input_dict['proteins_100g'] / \
-            (input_dict['carbohydrates_100g'] + 1e-8)
-        input_dict['protein_fat_ratio'] = input_dict['proteins_100g'] / \
-            (input_dict['fat_100g'] + 1e-8)
-        input_dict['total_macros'] = input_dict['fat_100g'] + \
-            input_dict['carbohydrates_100g'] + input_dict['proteins_100g']
+        # Create derived features only if they're not already provided
+        if input_dict.get('fat_carb_ratio') is None:
+            input_dict['fat_carb_ratio'] = input_dict['fat_100g'] / \
+                (input_dict['carbohydrates_100g'] + 1e-8)
+
+        if input_dict.get('protein_carb_ratio') is None:
+            input_dict['protein_carb_ratio'] = input_dict['proteins_100g'] / \
+                (input_dict['carbohydrates_100g'] + 1e-8)
+
+        if input_dict.get('protein_fat_ratio') is None:
+            input_dict['protein_fat_ratio'] = input_dict['proteins_100g'] / \
+                (input_dict['fat_100g'] + 1e-8)
+
+        if input_dict.get('total_macros') is None:
+            input_dict['total_macros'] = input_dict['fat_100g'] + \
+                input_dict['carbohydrates_100g'] + input_dict['proteins_100g']
 
         df = pd.DataFrame([input_dict])
 
