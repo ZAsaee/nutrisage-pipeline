@@ -122,16 +122,16 @@ jobs:
           --health-check-grace-period-seconds 120 \
           --force-new-deployment
 
-    - name: Install latest AWS CLI
+    - name: Install AWS CLI and wait for service stabilization
       run: |
         echo "Installing AWS CLI v2..."
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip -q awscliv2.zip
-        sudo ./aws/install --update > /dev/null
+        unzip awscliv2.zip
+        sudo ./aws/install --update
         rm -rf awscliv2.zip aws
-
-    - name: Wait for service to stabilize
-      run: |
+        echo "Verifying AWS CLI version:"
+        aws --version
+        echo "Waiting for service to stabilize..."
         aws ecs wait services-stable \
           --cluster $ECS_CLUSTER \
           --services $ECS_SERVICE \
