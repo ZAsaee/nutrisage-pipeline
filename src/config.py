@@ -1,5 +1,6 @@
 # src/config.py
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
+from pydantic_settings import SettingsConfigDict as ConfigDict
 from typing import List
 
 
@@ -28,9 +29,10 @@ class Settings(BaseSettings):
     random_state: int = 42
     bayes_search_iterations: int = 32
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=False
+    )
 
 
 # Instantiate a global settings object

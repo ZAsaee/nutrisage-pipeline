@@ -20,13 +20,12 @@ def main():
     args = parser.parse_args()
 
     df = load_parquet(args.input)
+    cols = settings.feature_columns + [settings.label_column]
+    df = df[cols]
     df = handle_missing_values(df)
     df = remove_outliers(df)
     df = compute_feature_engineering(df)
     df = encode_labels(df)
-    # Keep only the selected feature columns + label
-    cols = settings.feature_columns + [settings.label_column]
-    df = df[cols]
     df.to_parquet(args.output, index=False)
 
 

@@ -8,10 +8,18 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
-    Q1 = df.quantile(0.25)
-    Q3 = df.quantile(0.75)
+    # Only look at numeric columns for outlier detection
+    numeric = df.select_dtypes(include='number')
+    Q1 = numeric.quantile(0.25)
+    Q3 = numeric.quantile(0.75)
     IQR = Q3 - Q1
-    return df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]
+
+    # Build a boolean mask of rows to *keep*
+    mask = ~((numeric < (Q1 - 1.5 * IQR))
+             | (numeric > (Q3 + 1.5 * IQR))).any(axis=1)
+
+    # Apply that mask to the full DataFrame (so labels stay aligned)
+    return df.loc[mask]
 
 
 def compute_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
@@ -20,6 +28,7 @@ def compute_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def encode_labels(df: pd.DataFrame) -> pd.DataFrame:
-    df[settings.label_column] = df['nutrition_grade'].map(
-        {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4})
+    raw_col = settings.label_column
+    grade_map = {g.lower(): i for i, g in enumerate(['A', 'B', 'C', 'D', 'E'])}
+    df[raw_col] = df[raw_col].str.lower().map(grade_map)
     return df
