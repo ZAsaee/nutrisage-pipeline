@@ -23,9 +23,9 @@ jobs:
 
       - name: Install Copilot CLI
         run: |
-          curl -Lo copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux \
-            && chmod +x copilot \
-            && sudo mv copilot /usr/local/bin/
+          curl -Lo copilot-cli https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux
+          chmod +x copilot-cli
+          sudo mv copilot-cli /usr/local/bin/copilot
 
       - name: Cache Python dependencies
         uses: actions/cache@v3
