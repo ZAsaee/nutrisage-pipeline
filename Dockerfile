@@ -14,6 +14,9 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ /app/src/
 
+# Copy the model artifact
+COPY models/ models/
+
 # Stage 2: final image
 FROM python:3.10-slim
 WORKDIR /app
