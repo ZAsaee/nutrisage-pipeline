@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     raw_data_path: str = "data/raw"
     processed_data_path: str = "data/processed"
     preprocessed_data_file: str = "data/processed/preprocessed.parquet"
-    dataset_file: str = "data/processed/dataset.parquet"
+    dataset_file: str = "data/dataset/dataset.parquet"
     model_output_path: str = "models/xgb_model.joblib"
     feature_importance_output: str = "feature_importance.csv"
 

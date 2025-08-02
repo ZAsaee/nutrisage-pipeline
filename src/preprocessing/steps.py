@@ -29,6 +29,10 @@ def compute_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
 def encode_labels(df: pd.DataFrame) -> pd.DataFrame:
     raw_col = settings.label_column
+    df = df.copy()
+    df[raw_col] = df[raw_col].str.lower()
+    valid = ['a', 'b', 'c', 'd', 'e']
+    df = df[df[raw_col].isin(valid)]
     grade_map = {g.lower(): i for i, g in enumerate(['A', 'B', 'C', 'D', 'E'])}
     df[raw_col] = df[raw_col].str.lower().map(grade_map)
     return df

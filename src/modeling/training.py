@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from skopt import BayesSearchCV
 from src.config import settings
+from src.logger import logger
 
 
 def train_model(X, y, **kwargs):
@@ -44,22 +45,28 @@ if __name__ == "__main__":
         description="Train a classification model with optional Bayesian search.")
     parser.add_argument("--input", default=settings.preprocessed_data_file,
                         help="Path to preprocessed parquet dataset")
-    parser.add_argument("--model-output", default=settings.model_output_path,
+    parser.add_argument("--model-output-path", default=settings.model_output_path,
                         help="Path to save the trained model")
     parser.add_argument("--bayes-search", action="store_true",
                         help="Run Bayesian hyperparameter search before training")
     args = parser.parse_args()
 
+    logger.info("Loading preprocessed data from %s", args.input)
     df = pd.read_parquet(args.input)
     X = df.drop(settings.label_column, axis=1)
     y = df[settings.label_column]
+
+    logger.info("Splitting data: test_size=%s", settings.test_size)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=settings.test_size, random_state=settings.random_state
     )
 
     if args.bayes_search:
+        logger.info("Starting Bayesian hyperparameter search (%d iter)",
+                    settings.bayes_search_iterations)
         model = bayesian_search(X_train, y_train)
     else:
+        logger.info("Training XGBoost with default params")
         model = train_model(
             X_train, y_train,
             n_estimators=100,
@@ -68,7 +75,12 @@ if __name__ == "__main__":
             random_state=settings.random_state
         )
 
+    logger.info("Evaluating model on test data (%d rows)", len(y_test))
     preds = model.predict(X_test)
+    logger.info("Accuracy: %.4f", accuracy_score(y_test, preds))
     print(f"Accuracy: {accuracy_score(y_test, preds):.4f}")
     print(classification_report(y_test, preds))
+
+    logger.info("Saving trained model to %s", args.model_output_path)
     joblib.dump(model, args.model_output_path)
+    logger.info("Training complete.")

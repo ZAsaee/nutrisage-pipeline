@@ -10,4 +10,4 @@ def sample_df(df: pd.DataFrame, fraction: float = None, random_state: int = None
     """
     frac = fraction if fraction is not None else 1.0
     rs = random_state or settings.random_state
-    return df.sample(frac=frac, random_state=rs)
+    return df.sample(frac=frac, random_state=rs, axis=0)

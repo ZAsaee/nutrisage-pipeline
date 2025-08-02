@@ -1,7 +1,9 @@
 # src/api/app.py
 from fastapi import FastAPI
 from src.api.predict import predict_single, predict_batch
+from src.logger import logger
 
+logger.info("Starting FastAPI application")
 app = FastAPI(title="NutriSage API")
 
 

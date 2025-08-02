@@ -1,5 +1,6 @@
 # src/preprocessing/pipeline.py
-import argparse
+from src.logger import logger
+from src.config import settings
 from src.data.storage import load_parquet
 from src.preprocessing.steps import (
     handle_missing_values,
@@ -7,7 +8,7 @@ from src.preprocessing.steps import (
     compute_feature_engineering,
     encode_labels,
 )
-from src.config import settings
+import argparse
 
 
 def main():
@@ -19,14 +20,22 @@ def main():
                         help="Path to save preprocessed dataset")
     args = parser.parse_args()
 
+    logger.info("Loading data for preprocessing from %s", args.input)
     df = load_parquet(args.input)
+    logger.info("Loaded %d rows", len(df))
+
     cols = settings.feature_columns + [settings.label_column]
     df = df[cols]
-    df = handle_missing_values(df)
-    df = remove_outliers(df)
-    df = compute_feature_engineering(df)
-    df = encode_labels(df)
+    logger.info("Filtered to cols: %s", cols)
+
+    for fn in (handle_missing_values, remove_outliers, compute_feature_engineering, encode_labels):
+        logger.info("Applying %s", fn.__name__)
+        df = fn(df)
+        logger.info("Rows after %s: %d", fn.__name__, len(df))
+
+    logger.info("Saving preprocessed data to %s", args.output)
     df.to_parquet(args.output, index=False)
+    logger.info("Preprocessing complete.")
 
 
 if __name__ == "__main__":
