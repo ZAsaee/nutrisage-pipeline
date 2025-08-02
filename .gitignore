@@ -1,5 +1,6 @@
 # Data
 /data/
+/temp/
 
 # Model files (keep in git for deployment)
 # models/*.pkl
