@@ -1,4 +1,4 @@
-name: 'Deploy Service'
+name: Deploy Service
 
 on:
   push:
@@ -10,7 +10,8 @@ jobs:
     name: Deploy to AWS via Copilot
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: src
+      PYTHONPATH: ./src
+      AWS_REGION: ${{ secrets.AWS_REGION }}   # or hard-code: us-east-1
 
     steps:
       - name: Checkout code
@@ -19,9 +20,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region:            ${{ secrets.AWS_REGION }}  # matches env above
 
       - name: Install Copilot CLI
         run: |
@@ -44,7 +45,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run tests
