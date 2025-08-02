@@ -15,7 +15,7 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 COPY src/ /app/src/
 
 # Copy the model artifact
-COPY models/ models/
+COPY models/ /app/models/
 
 # Stage 2: final image
 FROM python:3.10-slim
@@ -24,6 +24,7 @@ WORKDIR /app
 # Copy only the necessary files from the builder stage
 COPY --from=builder /root/.local /root/.local
 COPY --from=builder /app/src/ /app/src/
+COPY --from=builder /app/models/ /app/models/
 
 # Ensure the local bin directory is in PATH
 ENV PATH="/root/.local/bin:${PATH}"
