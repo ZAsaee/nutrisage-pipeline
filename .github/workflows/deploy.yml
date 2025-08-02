@@ -9,6 +9,8 @@ jobs:
   deploy:
     name: Deploy to AWS via Copilot
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
 
     steps:
       - name: Checkout code
