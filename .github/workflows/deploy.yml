@@ -1,39 +1,56 @@
-steps:
-- name: Checkout code
-  uses: actions/checkout@v3
+name: 'Deploy Service'
 
-- name: Configure AWS credentials
-  uses: aws-actions/configure-aws-credentials@v2
-  with:
-    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    aws-region: us-east-1
+on:
+  push:
+    branches:
+      - main
 
-- name: Cache Python dependencies
-  uses: actions/cache@v3
-  with:
-    path: ~/.cache/pip
-    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-    restore-keys: |
-      ${{ runner.os }}-pip-
+jobs:
+  deploy:
+    name: Deploy to AWS via Copilot
+    runs-on: ubuntu-latest
 
-- name: Set up Python
-  uses: actions/setup-python@v4
-  with:
-    python-version: '3.10'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-- name: Install Python dependencies
-  run: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-- name: Run tests
-  run: |
-    python -m pytest --maxfail=1 --disable-warnings -q
-  
-- name: Deploy to AWS Copilot
-  env:
-    COPILOT_APP: nutrisage
-    COPILOT_ENV: dev
-  run: |
-    copilot svc deploy --name inference --env dev
+      - name: Install Copilot CLI
+        run: |
+          curl -Lo copilot https://github.com/aws/copilot-cli/releases/latest/download/copilot-linux \
+            && chmod +x copilot \
+            && sudo mv copilot /usr/local/bin/
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
+
+      - name: Deploy with Copilot
+        env:
+          COPILOT_APP: nutrisage
+          COPILOT_ENV: dev
+        run: |
+          copilot svc deploy --name inference --env dev
