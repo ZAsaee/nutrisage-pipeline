@@ -10,7 +10,7 @@ jobs:
     name: Deploy to AWS via Copilot
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ./src
+      PYTHONPATH: .
       AWS_REGION: ${{ secrets.AWS_REGION }}   # or hard-code: us-east-1
 
     steps:
