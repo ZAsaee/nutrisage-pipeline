@@ -32,9 +32,15 @@ network:
 
 # Autoscaling configuration
 autoscaling:
-  min_count: 1               # never go below 1
-  max_count: 3               # scale up to 3 tasks
-  target_cpu_utilization: 70 # scale out if avg CPU >70%, scale in below
+  cpu:
+    min: 1
+    max: 3
+    target_utilization: 70
+  requests:
+    min: 1
+    max: 3
+    # scale out if you sustain ~50 requests per target per minute
+    target: 50 # scale out if avg CPU >70%, scale in below
 
 # storage:
   # readonly_fs: true       # Limit to read-only access to mounted root filesystems.
