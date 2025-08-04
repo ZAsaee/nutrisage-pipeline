@@ -21,6 +21,16 @@ def root():
     return {"message": "NutriSage inference up and running"}
 
 
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {"message": "NutriSage inference up and running"}
+
+
 @app.post("/predict")
 async def predict_endpoint(item: dict):
     return predict_single(item)
