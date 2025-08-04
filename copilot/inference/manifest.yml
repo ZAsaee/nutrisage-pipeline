@@ -35,9 +35,9 @@ count:
     spot_from: 1
   cooldown:
     in: 5s
-    out: 15s
-  cpu_percentage: 50
-  requests: 100
+    out: 5s
+  cpu_percentage: 40
+  requests: 400
 exec: true     # Enable running commands in your container.
 network:
   connect: true # Enable Service Connect for intra-environment traffic between services.
