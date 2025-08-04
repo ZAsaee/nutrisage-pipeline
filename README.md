@@ -31,7 +31,7 @@ NutriSage-Pipeline ingests food item nutrition data and trains a model to predic
 ## Architecture & Pipeline
 
 ```mermaid
-flowchart LR
+graph LR
   A[S3 Raw Data] --> B[Data Preprocessing]
   B --> C[Model Training (XGBoost)]
   C --> D[Model Artifact (S3 / ECR)]

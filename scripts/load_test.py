@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 PARQUET_FILE = "data/processed/full_data.parquet"
 
 # Inference endpoint URL
-ENDPOINT = "http://nutris-Publi-Ic9sn7lilFkW-27068012.us-east-1.elb.amazonaws.com/batch_predict"
+ENDPOINT = "http://nutris-Publi-Vur2GtHGbTkd-1627005709.us-east-1.elb.amazonaws.com/batch_predict"
 
 # Number of records per request
 BATCH_SIZE = 100
