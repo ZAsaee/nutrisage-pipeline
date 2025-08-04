@@ -10,37 +10,34 @@ type: Load Balanced Web Service
 http:
   # Requests to this path will be forwarded to your service.
   # To match all requests you can use the "/" path.
-  path: '/'
+  path: '/*'
   # You can specify a custom health check path. The default is "/".
-  healthcheck: '/health'
-
+  healthcheck:
+    path: "/health"
+    interval: 10s
+  
 
 # Configuration for your containers and service.
 image:
   # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/#image-build
-  build: Dockerfile
-  context: . # The directory containing the Dockerfile.
+  build:
+    dockerfile: Dockerfile
+    context: . # The directory containing the Dockerfile.
   # Port exposed through your container to route traffic to it.
   port: 80
 
 cpu: 256       # Number of CPU units for the task.
 memory: 512    # Amount of memory in MiB used by the task.
-count: 1       # Number of tasks that should be running in your service.
+count:
+  range: 3-7
+  cooldown:
+    in: 15s
+    out: 15s
+  cpu_percentage: 40
+  requests: 80
 exec: true     # Enable running commands in your container.
 network:
   connect: true # Enable Service Connect for intra-environment traffic between services.
-
-# Autoscaling configuration
-autoscaling:
-  cpu:
-    min: 1
-    max: 3
-    target_utilization: 70
-  requests:
-    min: 1
-    max: 3
-    # scale out if you sustain ~50 requests per target per minute
-    target: 50 # scale out if avg CPU >70%, scale in below
 
 # storage:
   # readonly_fs: true       # Limit to read-only access to mounted root filesystems.
