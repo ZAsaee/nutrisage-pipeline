@@ -6,6 +6,20 @@ from src.logger import logger
 logger.info("Starting FastAPI application")
 app = FastAPI(title="NutriSage API")
 
+# Add a health endpoint
+
+
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok"}
+
+# (Optional) also handle root so GET / doesn’t 404
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {"message": "NutriSage inference up and running"}
+
 
 @app.get("/health", tags=["health"])
 def health_check():
