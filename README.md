@@ -39,3 +39,4 @@ flowchart LR
   E --> F[Inference Endpoint]
   F --> G[CloudWatch Metrics]
   G --> H[Dashboard & Alerts]
+```
