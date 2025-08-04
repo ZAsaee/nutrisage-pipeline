@@ -53,4 +53,4 @@ jobs:
           COPILOT_APP: nutrisage
           COPILOT_ENV: dev
         run: |
-          copilot svc deploy --name inference --env dev
+          copilot svc deploy --name inference --env deploy

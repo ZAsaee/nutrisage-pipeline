@@ -30,4 +30,9 @@ NutriSage-Pipeline ingests food item nutrition data and trains a model to predic
 
 ## Architecture & Pipeline
 
-![Architecture Diagram](docs/figures/arch_diag_.png)
+![Diagram](docs/figures/arch_diag.png)
+
+<p align="center">
+  <img src="docs/figures/arch_diag.png" width="350" title="hover text">
+  <img src="docs/figures/arch_diag.png" width="550" alt="accessibility text">
+</p>
